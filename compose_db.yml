@@ -10,13 +10,12 @@ services:
       - --skip-character-set-client-handshake
       - --skip-innodb-read-only-compressed
     environment:
-      MYSQL_ROOT_PASSWORD: "your_strong_password"
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
     ports:
-      - "3306:3306" # Opens the port to your internal LAN
+      - "3306:3306" 
     volumes:
       - mariadb-data:/var/lib/mysql
 
-  # ERPNext also requires Redis. We can host it on the same DB node.
   redis-cache:
     image: redis:6.2-alpine
     restart: always
