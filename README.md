@@ -9,4 +9,5 @@ Me and Sameer chose this project in order to understand what enterprises need in
 
 * We made the choice to use a Dynamic Load Balancer using the resource based algorithm, as it would save on resources. We chose this over the other options due to the fact that it will save on resources and network traffic by sending requests to the server with least load. This was ideal over other choices because:
     - **Least Connection**: This assumes that all requests take the same amount of compute power, which isnt true for an ERP system as some requests can require adding to a database or deleting.
-    - **Weighted Least Connection**: This
+    - **Weighted Least Connection**: This is the same as Least Connection, but allows certain servers to have more traffic according to the resources.
+    - **Weighted Response Time**: 
