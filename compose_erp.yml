@@ -1,0 +1,88 @@
+services:
+  configurator:
+    image: frappe/erpnext:version-15
+    restart: on-failure
+    entrypoint:
+      - bash
+      - -c
+    command:
+      - >
+        ls -1 apps > sites/apps.txt;
+        bench set-config -g db_host 10.0.0.10;
+        bench set-config -gp db_port 3306;
+        bench set-config -g redis_cache "redis://10.0.0.10:6379";
+        bench set-config -g redis_queue "redis://10.0.0.10:6380";
+        bench set-config -g redis_socketio "redis://10.0.0.10:6379";
+        bench set-config -gp socketio_port 9000;
+    volumes:
+      - sites-vol:/home/frappe/frappe-bench/sites
+
+  backend:
+    image: frappe/erpnext:version-15
+    depends_on:
+      configurator:
+        condition: service_completed_successfully
+    volumes:
+      - sites-vol:/home/frappe/frappe-bench/sites
+
+  frontend:
+    image: frappe/erpnext:version-15
+    command:
+      - nginx-entrypoint.sh
+    environment:
+      BACKEND: backend:8000
+      SOCKETIO: websocket:9000
+      FRAPPE_SITE_NAME_HEADER: $$host
+      UPSTREAM_REAL_IP_ADDRESS: 127.0.0.1
+      UPSTREAM_REAL_IP_HEADER: X-Forwarded-For
+      UPSTREAM_REAL_IP_RECURSIVE: "off"
+      PROXY_READ_TIMEOUT: 120
+      CLIENT_MAX_BODY_SIZE: 50m
+    ports:
+      - "8080:8080"
+    depends_on:
+      - backend
+      - websocket
+    volumes:
+      - sites-vol:/home/frappe/frappe-bench/sites
+
+  websocket:
+    image: frappe/erpnext:version-15
+    depends_on:
+      configurator:
+        condition: service_completed_successfully
+    command:
+      - node
+      - /home/frappe/frappe-bench/apps/frappe/socketio.js
+    volumes:
+      - sites-vol:/home/frappe/frappe-bench/sites
+
+  queue-short:
+    image: frappe/erpnext:version-15
+    depends_on:
+      configurator:
+        condition: service_completed_successfully
+    command: bench worker --queue short,default
+    volumes:
+      - sites-vol:/home/frappe/frappe-bench/sites
+
+  queue-long:
+    image: frappe/erpnext:version-15
+    depends_on:
+      configurator:
+        condition: service_completed_successfully
+    command: bench worker --queue long,default,short
+    volumes:
+      - sites-vol:/home/frappe/frappe-bench/sites
+
+  scheduler:
+    image: frappe/erpnext:version-15
+    depends_on:
+      configurator:
+        condition: service_completed_successfully
+    command: bench schedule
+    volumes:
+      - sites-vol:/home/frappe/frappe-bench/sites
+
+volumes:
+  sites-vol:
